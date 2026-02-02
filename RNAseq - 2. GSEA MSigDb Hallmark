@@ -1,1 +1,159 @@
+### 1. Gene Ranking and GSEA MSigDB HALLMARK Analysis ###
 
+
+DEAG <- DEAG <- NAM_Trained_vs_Naive_clean[
+  rownames(NAM_Trained_vs_Naive_clean) %in% in_A_and_B,
+]
+
+gsea_res_df <- as.data.frame(NAM_Trained_vs_Naive_clean)
+gsea_res_df$gene <- rownames(gsea_res_df)
+
+gsea_res_df <- gsea_res_df %>%
+  filter(!is.na(stat), is.finite(stat), !is.na(gene), gene != "")
+
+ranks_gsea <- gsea_res_df$stat
+names(ranks_gsea) <- gsea_res_df$gene
+ranks_gsea <- sort(ranks_gsea, decreasing = TRUE)
+
+gsea_m_df <- msigdbr(species = "Mus musculus", collection = "H") %>%
+  dplyr::select(gs_name, gene_symbol)
+
+set.seed(1)
+gsea_h <- GSEA(
+  geneList     = ranks_gsea,
+  TERM2GENE    = gsea_m_df,
+  minGSSize    = 10,
+  maxGSSize    = 500,
+  pvalueCutoff = 0.25,    
+  verbose      = FALSE,
+  eps = 0
+)
+
+
+
+### 2. Selection of Top Up/Downregulated Terms and DotPlot the Results ###
+
+gsea_sig <- gsea_h
+gsea_sig@result <- subset(gsea_h@result, p.adjust < 0.05)
+gsea_sig@result <- gsea_sig@result[order(gsea_sig@result$p.adjust), ]
+
+
+
+top_up_ids <- gsea_sig@result %>%
+  as_tibble() %>%
+  filter(NES > 0) %>%
+  arrange(desc(NES)) %>%
+  head(24) %>%
+  pull(ID)
+
+
+plot_data_up <- gsea_sig@result %>%
+  filter(ID %in% top_up_ids) %>%
+  mutate(log10_padj = -log10(p.adjust)) %>%
+  arrange(desc(NES)) %>%
+  mutate(Description = factor(Description, levels = rev(unique(Description))))
+
+  
+gsea_up_dot <- ggplot(plot_data_up, aes(x = NES, y = Description)) +
+  geom_point(aes(size = setSize, color = log10_padj)) +
+  scale_color_gradient(
+    low = "blue", 
+    high = "red", 
+    name = "-log10(p-adj)"
+  ) +
+  scale_size(
+    range = c(3, 10), 
+    name = "Gene Count"
+  ) +
+  labs(
+    title = "NAMs - Trained vs Naive",
+    subtitle = "Top Upregulated GSEA Terms",
+    x = "Normalized Enrichment Score (NES)",
+    y = "GO Terms"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(size = 22, face = "bold"),
+    plot.subtitle = element_text(size = 18, face = "italic"),
+    axis.text.y = element_text(size = 20),
+    axis.title.y = element_blank(),
+    axis.text.x = element_text(size = 12),
+    axis.title.x = element_text(size = 16, face = "bold"),
+    legend.title = element_text(size = 20, face = "bold"),  
+    legend.text = element_text(size = 16)                   
+  )
+
+gsea_up_dot
+
+
+top_down_terms <- gsea_sig |>
+  dplyr::filter(NES < 0, p.adjust < 0.05) |>
+  dplyr::arrange(NES) |>
+  head(8) |>
+  pull(Description) |>
+  as.character()
+
+
+plot_data_down <- gsea_sig@result %>%
+  filter(Description %in% top_down_terms) %>%
+  mutate(log10_padj = -log10(p.adjust))  
+
+gsea_down_dot <- ggplot(
+  plot_data_down,
+  aes(
+    x = NES,
+    y = factor(Description, levels = rev(Description[order(NES)])) 
+  )
+) +
+  geom_point(aes(size = setSize, color = log10_padj)) +
+  scale_color_gradient(low = "blue", high = "red", name = "-log10(p-adj)") +
+  scale_size(range = c(3, 10), name = "Gene Count") +
+  labs(
+    title = "NAMs - Trained vs Naive",
+    subtitle = "Top Downregulated GSEA Terms",
+    x = "Normalized Enrichment Score (NES)",
+    y = "GO Terms"
+  ) +
+  scale_x_reverse() +  # Flips NES axis
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(size = 22, face = "bold"),
+    plot.subtitle = element_text(size = 18, face = "italic"),
+    axis.text.y = element_text(size = 20),
+    axis.title.y = element_blank(),
+    axis.text.x = element_text(size = 12),
+    axis.title.x = element_text(size = 16, face = "bold"),
+
+    legend.title = element_text(size = 20, face = "bold"),  
+    legend.text = element_text(size = 16)                   
+  )
+
+gsea_down_dot
+
+
+
+
+### 3. GSEA Leading Edge Plots ###
+
+
+obj <- gsea_h   
+id  <- "HALLMARK_UV_RESPONSE_DN"  
+
+
+tab <- as.data.frame(obj@result)
+row <- tab[tab$ID == id, , drop = FALSE]
+
+title_txt <- sprintf(
+  "%s\nNES = %.2f | padj = %s",
+  row$Description[1],
+  as.numeric(row$NES[1]),
+  formatC(row$p.adjust[1], format = "e", digits = 2)
+)
+
+egoh_plot = gseaplot2(
+  obj,
+  geneSetID    = id,
+  pvalue_table = TRUE,
+  title        = title_txt
+)
+egoh_plot

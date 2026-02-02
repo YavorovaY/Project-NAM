@@ -1,0 +1,8 @@
+SampleID,Condition,Replicate,bamReads,Peaks,PeakCaller
+SS_NAM_1,Naive,1,/Users/yavoryordanov/Desktop/KamalNAM/ATAC Bam/GRCm38.p6-SS-NAM-1.samtools-coordinate.bam,/Users/yavoryordanov/Desktop/KamalNAM/ATAC Bam/GRCm38.p6-SS-NAM-1_peaks.narrowPeak,narrow
+SS_NAM_2,Naive,2,/Users/yavoryordanov/Desktop/KamalNAM/ATAC Bam/GRCm38.p6-SS-NAM-2.samtools-coordinate.bam,/Users/yavoryordanov/Desktop/KamalNAM/ATAC Bam/GRCm38.p6-SS-NAM-2_peaks.narrowPeak,narrow
+SS_NAM_4,Naive,4,/Users/yavoryordanov/Desktop/KamalNAM/ATAC Bam/GRCm38.p6-SS-NAM-4.samtools-coordinate.bam,/Users/yavoryordanov/Desktop/KamalNAM/ATAC Bam/GRCm38.p6-SS-NAM-4_peaks.narrowPeak,narrow
+TR_NAM_1,Trained,1,/Users/yavoryordanov/Desktop/KamalNAM/ATAC Bam/GRCm38.p6-Tr-NAM-1.samtools-coordinate.bam,/Users/yavoryordanov/Desktop/KamalNAM/ATAC Bam/GRCm38.p6-Tr-NAM-1_peaks.narrowPeak,narrow
+TR_NAM_2,Trained,2,/Users/yavoryordanov/Desktop/KamalNAM/ATAC Bam/GRCm38.p6-Tr-NAM-2.samtools-coordinate.bam,/Users/yavoryordanov/Desktop/KamalNAM/ATAC Bam/GRCm38.p6-Tr-NAM-2_peaks.narrowPeak,narrow
+TR_NAM_3,Trained,3,/Users/yavoryordanov/Desktop/KamalNAM/ATAC Bam/GRCm38.p6-Tr-NAM-3.samtools-coordinate.bam,/Users/yavoryordanov/Desktop/KamalNAM/ATAC Bam/GRCm38.p6-Tr-NAM-3_peaks.narrowPeak,narrow
+TR_NAM_4,Trained,4,/Users/yavoryordanov/Desktop/KamalNAM/ATAC Bam/GRCm38.p6-Tr-NAM-4.samtools-coordinate.bam,/Users/yavoryordanov/Desktop/KamalNAM/ATAC Bam/GRCm38.p6-Tr-NAM-4_peaks.narrowPeak,narrow

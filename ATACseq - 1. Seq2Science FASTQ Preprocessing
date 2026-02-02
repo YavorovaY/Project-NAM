@@ -1,1 +1,14 @@
+### 1. Introduction and Directions to Appendix Files ###
 
+# Before running the seq2science pipeline it needed to be initiated by the following bash code:
+
+conda activate seq2science
+seq2science init atac-seq
+
+# These commands generate two files - samples.tsv - where all the information about the fastqs, assembly, and replicate information was added. config.yaml - contains custom instructions modifying the pipeline to the current needs.
+# The samples.tsv file is present in: "ATACseq - 1.1. Seq2science - Samples.tsv"
+# The config.yaml file is present in "ATACseq - 1.2. Seq2science - Config.yaml"
+
+# After the two files were modified and saved in the working directory, the following line of code was used to run the pipeline
+
+nice -n10 seq2science run atac-seq --cores 20

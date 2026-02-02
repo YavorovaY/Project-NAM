@@ -3,7 +3,7 @@
 files <- list.files(pattern = "_ct_genes\\.txt$", full.names = TRUE)
 
 lst <- lapply(files, function(f) {
-  dt <- fread(f, col.names = c("gene", basename(f)))  # read as two columns, name by filename
+  dt <- fread(f, col.names = c("gene", basename(f)))  
 })
 
 merged <- Reduce(function(x, y) merge(x, y, by = "gene", all = TRUE), lst)
@@ -23,19 +23,15 @@ fwrite(merged, "nam_counts_matrix.tsv")
 
 
 
-
-
 ### 2. DDS Object Preparation ###
 
-Counts <- count_mat                               # your matrix from earlier
-storage.mode(Counts) <- "integer"                 # make sure it's integer
-Counts <- Counts[rowSums(Counts) > 100, , drop=FALSE]  # optional prefilter
+Counts <- count_mat                               
+storage.mode(Counts) <- "integer"                 
+Counts <- Counts[rowSums(Counts) > 100, , drop=FALSE]  
 
-# --- 1) Parse sample names into TWO factors, then a 4-level condition ---
+
 samples <- colnames(Counts)
 
-# Adjust the regex if your names differ; these assume strings like:
-# "NaiveNAMs-1_S3", "TrainedAMs-4_S11", etc.
 Training <- ifelse(grepl("^Naive",   samples), "Naive",
                    ifelse(grepl("^Trained", samples), "Trained", NA))
 
@@ -44,21 +40,19 @@ CellType <- ifelse(grepl("NAM", samples, ignore.case=TRUE), "NAM",
 
 stopifnot(!any(is.na(Training)), !any(is.na(CellType)))
 
-# Make a single 4-level factor: Naive_NAM, Naive_AM, Trained_NAM, Trained_AM
 condition <- factor(paste(Training, CellType, sep="_"),
                     levels = c("Naive_NAM","Naive_AM","Trained_NAM","Trained_AM"))
 
-# sanity check: you need >=2 samples in the levels you want to test
 print(table(condition))
 
 coldata <- data.frame(row.names = samples, condition = condition)
 
-# --- 2) Build and run DESeq2 ---
 dds <- DESeqDataSetFromMatrix(countData = Counts,
                               colData   = coldata,
                               design    = ~ condition)
 
 dds <- DESeq(dds)   # will estimate size factors & dispersions itself
+
 
 
 
@@ -70,7 +64,6 @@ if (!exists("vsd")) {
   vsd <- vst(dds, blind = TRUE)
 }
 
-## --- make sure 'condition' exists in colData (if you built with Training/CellType, we reconstruct) ---
 cd <- as.data.frame(colData(vsd))
 cd$sample <- rownames(cd)
 
@@ -78,26 +71,23 @@ if (!"condition" %in% names(cd) && all(c("Training", "CellType") %in% names(cd))
   cd$condition <- factor(paste(cd$Training, cd$CellType, sep = "_"))
 }
 
-## --- extract replicate number from sample names ---
-## works for names like "NaiveNAMs-1_S3" or "..._2" etc.
+
 rep_guess <- sub(".*[-_](\\d+).*", "\\1", cd$sample)
 rep_guess[rep_guess == cd$sample] <- NA  # if the regex didn't find a number
 
-## fallback: if no explicit replicate digits, assign 1..n within each condition
+
 if (anyNA(rep_guess)) {
   rep_guess <- ave(cd$sample, cd$condition, FUN = function(v) seq_along(v))
 }
 
 cd$replicate <- as.character(rep_guess)
 
-## write back into vsd
 colData(vsd) <- DataFrame(cd)
 
-## --- PCA data ---
 pca_data <- plotPCA(vsd, intgroup = c("condition","replicate"), returnData = TRUE)
 percentVar <- round(100 * attr(pca_data, "percentVar"))
 
-## --- shapes for replicates ---
+
 shape_map <- c("1" = 21, "2" = 22, "3" = 23, "4" = 24, "5" = 25)
 pca_data$rep_num <- as.character(pca_data$replicate)
 if (!all(pca_data$rep_num %in% names(shape_map))) {
@@ -107,7 +97,6 @@ if (!all(pca_data$rep_num %in% names(shape_map))) {
   shape_map <- c(shape_map, setNames(rep(21, length(extra_levels)), extra_levels))
 }
 
-## --- plot ---
 PCA_plot <- ggplot(pca_data, aes(PC1, PC2, fill = condition, shape = rep_num)) +
   geom_point(size = 5, color = "black", stroke = 0.5) +
   scale_shape_manual(values = shape_map) +
@@ -124,6 +113,8 @@ PCA_plot <- ggplot(pca_data, aes(PC1, PC2, fill = condition, shape = rep_num)) +
   )
 
 PCA_plot.
+
+
 
 
 

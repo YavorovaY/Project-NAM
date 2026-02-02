@@ -1,1 +1,133 @@
+### 1. TPM DotPlot - Data Preparation 1 ###
 
+xlsx_path1 <- file.choose() 
+df1 <- readxl::read_excel(xlsx_path1, sheet = 1)
+gene_ids1 <- df1[[1]]
+df1[[1]] <- NULL
+rownames_df1 <- make.unique(as.character(gene_ids1))
+expr_mat1 <- as.data.frame(lapply(df1, function(x) suppressWarnings(as.numeric(x))))
+rownames(expr_mat1) <- rownames_df1
+stopifnot(!any(is.na(rownames(expr_mat1))))
+cat("Dimensions:", nrow(expr_mat1), "genes ×", ncol(expr_mat1), "samples\n")
+cat("Duplicate gene IDs after make.unique():", sum(duplicated(rownames(expr_mat1))), "\n")
+summary(colSums(is.na(expr_mat1)))
+NAM_TPM1 <- as.matrix(expr_mat1)
+mart1 <- useMart("ensembl", dataset = "mmusculus_gene_ensembl")
+gene_ids1 <- rownames(NAM_TPM1)
+old1 <- rownames(NAM_TPM1)
+sym_from_alias1 <- mapIds(org.Mm.eg.db, keys = old1, keytype = "ALIAS",
+                         column = "SYMBOL", multiVals = "first")
+sym_from_symbol1 <- mapIds(org.Mm.eg.db, keys = old1, keytype = "SYMBOL",
+                          column = "SYMBOL", multiVals = "first")
+new_names1 <- sym_from_alias1
+na_idx1 <- is.na(new_names1)
+new_names1[na_idx1] <- sym_from_symbol1[na_idx1]
+new_names1[is.na(new_names1)] <- old1[is.na(new_names1)]
+new_names1 <- make.unique(new_names1)
+rownames(NAM_TPM1) <- new_names1
+
+colnames(NAM_TPM1) <- gsub("TrNAMs",    "Trained NAMs", colnames(NAM_TPM1))
+colnames(NAM_TPM1) <- gsub("Naive.NAMs", "Naive NAMs",  colnames(NAM_TPM1))
+
+
+
+### 2. TPM Dot Plot - Data Preparation 2 ###
+
+sample_info1 <- data.frame(
+  sample1 = colnames(NAM_TPM1)
+) %>%
+  separate(sample1, into = c("Condition", "Rep"), sep = "\\.", remove = FALSE) %>%
+  mutate(
+    Condition1 = factor(Condition, 
+                       levels = c("Naive NAMs", "Trained NAMs"))
+  )
+sample_info1
+
+expr1 <- as.data.frame(NAM_TPM1)
+expr_avg1 <- expr1 %>%
+  rownames_to_column("Gene") %>%
+  pivot_longer(-Gene, names_to = "sample1", values_to = "TPM") %>%
+  left_join(sample_info1, by = "sample1") %>%
+  group_by(Gene, Condition) %>%
+  summarize(mean_TPM1 = mean(TPM, na.rm = TRUE), .groups = "drop")
+
+expr_avg1 <- expr_avg1 %>%
+  group_by(Gene) %>%
+  mutate(z = (mean_TPM1 - mean(mean_TPM1)) / sd(mean_TPM1)) %>%
+  ungroup()
+
+
+### 3. TPM DotPlot Ploting ###
+
+genes_to_plot1 <- c("Fabp4", "Arg1", "Angptl4", "Pparg", "Tnf", "Il6", "Cxcl1", "Cxcl2", "Il1b", "Tgfb1", "Tgfb2", "Tgfb3", "Il10") # EXAMPLE GENES
+
+plot_df1 <- expr_avg1 %>%
+  filter(Gene %in% genes_to_plot1)
+
+Dot_NAM = ggplot(plot_df1, aes(x = Gene, y = Condition)) +
+  geom_point(
+    aes(size = mean_TPM1, fill = z), 
+    color = "black",      # black border
+    shape = 21,           # circle with border
+    stroke = 0.2          # border thickness
+  ) +
+  scale_size(range = c(2, 12), guide = guide_legend(title = "Mean TPM")) +
+  scale_fill_gradient2(
+    low = "blue", mid = "white", high = "red", midpoint = 0,
+    name = "Z-score"
+  ) +
+  theme_bw(base_size = 13) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.major = element_line(color = "gray80", linewidth = 0.4),
+    panel.grid.minor = element_line(color = "gray80", linewidth = 0.2),
+    panel.background = element_rect(fill = "gray95", color = NA)
+  ) +
+  labs(
+    title = "Expression Dotplot - Efferocytosis Genes",
+    x = "Gene",
+    y = "Condition"
+  )
+
+Dot_NAM
+
+
+
+
+### 4. HeatMap Pro-Resolvin Genes ###
+
+expr_data <- as.data.frame(NAM_TPM1) %>%
+  rownames_to_column("Gene") %>%
+  pivot_longer(-Gene, names_to = "sample1", values_to = "TPM")
+
+meta_data <- data.frame(sample1 = colnames(NAM_TPM1)) %>%
+  separate(sample1, into = c("Condition", "Rep"), sep = "\\.", remove = FALSE)
+
+expr_avg_recalc <- expr_data %>%
+  left_join(meta_data, by = "sample1") %>%
+  group_by(Gene, Condition) %>%
+  summarize(mean_TPM = mean(TPM, na.rm = TRUE), .groups = "drop") %>%
+  pivot_wider(names_from = Condition, values_from = mean_TPM) %>%
+  column_to_rownames("Gene")
+
+
+
+heatmap_matrix <- expr_avg_recalc[, c("Naive NAMs", "Trained NAMs")]
+
+
+valid_genes <- intersect(genes_to_plot1, rownames(heatmap_matrix))
+final_data <- heatmap_matrix[valid_genes, , drop = FALSE]
+
+
+
+pheatmap(log2(final_data + 1),
+         scale = "row",        
+         cluster_rows = FALSE, 
+         cluster_cols = FALSE, 
+         color = colorRampPalette(c("navy", "white", "firebrick3"))(50),
+         border_color = NA,
+         cellwidth = 50,       
+         main = "Pro-Resolvin Genes",
+         show_rownames = TRUE,
+         angle_col = 0
+)

@@ -1,1 +1,105 @@
+### 1. DiffBind Analysis, PCA plot ###
 
+# Before starting the analysis a file containing the information about all .bam files was written in a samples.csv file.
+# The samples.csv can be found in: "ATACseq - 2.1. DiffBind - Samples.csv"
+
+dbObj <- dba(sampleSheet="samples.csv")
+plot(dbObj, main="Clustering by Peak Locations")
+
+dbObj <- dba.count(dbObj, bUseSummarizeOverlaps=FALSE)
+plot(dbObj, main="Clustering by Read Counts")
+
+dbObj <- dba.normalize(dbObj)
+dbObj <- dba.contrast(dbObj, categories=DBA_CONDITION, minMembers=2)
+dba.show(dbObj, bContrasts=TRUE)
+dbObj <- dba.analyze(dbObj, method=DBA_DESEQ2)
+
+dba.plotPCA(dbObj, attributes=DBA_CONDITION, label=DBA_ID)
+
+results_db <- dba.report(dbObj, th=0.05, bUsePval=FALSE)
+
+
+seqlevelsStyle(results_db) <- "UCSC"
+results_df <- as.data.frame(results_db)
+write.csv(results_df, "DiffBind_Results_All.csv")
+print("Saved DiffBind_Results_All.csv")
+
+
+
+### 2. Annotating Peaks to Genes ###
+
+txdb <- TxDb.Mmusculus.UCSC.mm10.knownGene
+anno <- annotatePeak(results_db, TxDb=txdb, tssRegion=c(-3000, 3000))
+anno_df <- as.data.frame(anno)
+
+promoters <- anno_df %>% filter(str_detect(annotation, "Promoter"))
+enhancers <- anno_df %>% filter(str_detect(annotation, "Distal|Intergenic|Intron"))
+
+
+anno <- annotatePeak(results_db, 
+                     TxDb=txdb, 
+                     tssRegion=c(-3000, 3000), 
+                     annoDb="org.Mm.eg.db")
+
+anno_df <- as.data.frame(anno)
+print(head(anno_df$SYMBOL))
+
+promoters <- anno_df %>% filter(str_detect(annotation, "Promoter"))
+enhancers <- anno_df %>% filter(str_detect(annotation, "Distal|Intergenic|Intron"))
+
+write.csv(promoters, "DiffBind_Promoters_Symbols.csv")
+write.csv(enhancers, "DiffBind_Enhancers_Symbols.csv")
+
+
+all_symbols <- dplyr::bind_rows(
+  promoters %>% dplyr::select(SYMBOL),   
+  enhancers %>% dplyr::select(SYMBOL)    
+)
+
+unique_symbols <- all_symbols %>%
+  distinct()                     
+
+
+total_unique_genes <- nrow(unique_symbols)  
+
+
+### 3. Volcano Plot ###
+
+db_res <- dba.report(
+  dbObj,
+  method = DBA_DESEQ2,
+  th = 1       
+
+df <- as.data.frame(db_res)
+df$peak_id <- paste0(df$Chr, ":", df$Start, "-", df$End)
+
+
+EnhancedVolcano(
+  df,
+  lab = rep("", nrow(df)),
+  x = "Fold",
+  y = "FDR",
+
+  xlab = bquote(Log[2]~"Fold change"),
+  ylab = bquote(-Log[10]~"FDR"),
+
+  pCutoff = 0.05,
+  FCcutoff = 1,
+
+  pointSize = 1.5,
+  labSize = 3,
+
+  col = c("black", "black", "#377eb8", "#e41a1c"),
+  colAlpha = 0.9,
+
+  legendPosition = "right",
+  legendLabSize = 12,
+  legendIconSize = 4,
+
+  drawConnectors = TRUE,
+  widthConnectors = 0.5,
+
+  title = "ATAC-seq Differential Accessibility",
+  subtitle = "DiffBind",
+  caption = "Fold change vs adjusted p-value"
+)

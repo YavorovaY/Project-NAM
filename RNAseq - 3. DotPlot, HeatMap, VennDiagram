@@ -131,3 +131,81 @@ pheatmap(log2(final_data + 1),
          show_rownames = TRUE,
          angle_col = 0
 )
+
+
+
+
+
+### 5. Complete VennPlot and Analysis ###
+
+gene_sets <- list(
+  "DARs" = joint_genes,
+  "DEGs" = NAM_Trained_vs_Naive_clean_sig@rownames,
+  "Efferocytosis Genes" = genes_to_plot1
+  #"GSEA - Upregulated" = merged_genes
+)
+#"ATAC Significant DARs" = atac_sig_res$gene_symbol
+
+
+venn_up = ggVennDiagram(
+  gene_sets,
+  category.names = names(gene_sets),
+  label = "count",
+  label_alpha = 0,
+  set_color = "black",
+  set_size = 5
+) +
+  coord_fixed(clip = "off") +
+  theme_minimal(base_size = 8) +
+  theme(
+    panel.grid = element_blank(),
+    axis.title = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),# 🔥 removes both major and minor grid lines
+    legend.position = "right",
+    plot.margin = margin(20, 20, 20, 20),
+    plot.title = element_text(size = 16, face = "bold"),
+    plot.background = element_rect(fill = "white", color = NA)
+  ) +
+  labs(title = "Efferocytosis Genes vs DEGs vs DARs") #subtitle = "+/- 2kb from TSS")
+
+venn_up = venn_up + scale_fill_gradient(low = "grey", high = "#745296")
+venn_up
+
+set_A <- gene_sets$`DARs`
+set_B <- gene_sets$`DEGs`
+set_C <- gene_sets$`Resolvin-Associated`
+
+
+only_in_A <- setdiff(
+  set_A,                                            
+  union(set_B, set_C)                               
+)
+write.csv(only_in_A, "Only in Salt vs Control DOWN.csv")
+
+only_in_B <- setdiff(                               
+  set_B,
+  union(set_A, set_C)
+)
+write.csv(only_in_B, "Only in Salt vs Taurine DOWN.csv")
+
+
+only_in_C <- setdiff(                             
+  set_C,
+  union(set_A, set_B)
+)
+write.csv(only_in_C, "Only in Salt vs Taurine DOWN.csv")
+
+
+in_A_and_B <- intersect(set_A, set_B)
+write.csv(in_A_and_B, "Overlapped DOWN.csv")
+
+
+in_A_and_C <- intersect(set_A, set_C)
+write.csv(in_A_and_C, "Overlapped DOWN.csv")
+
+in_B_and_C <- intersect(set_B, set_C)
+write.csv(in_B_and_C, "Overlapped DOWN.csv")
+
+in_all_three <- intersect(intersect(set_A, set_B), set_C)
+write.csv(in_all_three, "Overlapped DOWN.csv")

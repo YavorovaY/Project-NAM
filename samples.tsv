@@ -1,0 +1,21 @@
+# Example samples file for paper "Chromatin accessibility established by Pou5f3, Sox19b and Nanog primes
+# genes for activity during zebrafish genome activation". For help with filling out this file:
+# https://vanheeringen-lab.github.io/seq2science/content/workflows/atac_seq.html#filling-out-the-samples-tsv
+# Make sure that you use tab as a delimiter
+sample	assembly	technical_replicates	biological_replicates	conditions
+SS-NAM-1_S5_L001	GRCm38.p6	SS-NAM-1	Naive-NAM-1	naive
+SS-NAM-1_S5_L002	GRCm38.p6	SS-NAM-1	Naive-NAM-1	naive
+SS-NAM-2_S6_L001	GRCm38.p6	SS-NAM-2	Naive-NAM-2	naive
+SS-NAM-2_S6_L002	GRCm38.p6	SS-NAM-2	Naive-NAM-2	naive
+SS-NAM-3_S7_L001	GRCm38.p6	SS-NAM-3	Naive-NAM-3	naive
+SS-NAM-3_S7_L002	GRCm38.p6	SS-NAM-3	Naive-NAM-3	naive
+SS-NAM-4_S8_L001	GRCm38.p6	SS-NAM-4	Naive-NAM-4	naive
+SS-NAM-4_S8_L002	GRCm38.p6	SS-NAM-4	Naive-NAM-4	naive
+Tr-NAM-1_S12_L001	GRCm38.p6	Tr-NAM-1	Trained-NAM-1	trained
+Tr-NAM-1_S12_L002	GRCm38.p6	Tr-NAM-1	Trained-NAM-1	trained
+Tr-NAM-2_S13_L001	GRCm38.p6	Tr-NAM-2	Trained-NAM-2	trained
+Tr-NAM-2_S13_L002	GRCm38.p6	Tr-NAM-2	Trained-NAM-2	trained
+Tr-NAM-3_S14_L001	GRCm38.p6	Tr-NAM-3	Trained-NAM-3	trained
+Tr-NAM-3_S14_L002	GRCm38.p6	Tr-NAM-3	Trained-NAM-3	trained
+Tr-NAM-4_S15_L001	GRCm38.p6	Tr-NAM-4	Trained-NAM-4	trained
+Tr-NAM-4_S15_L002	GRCm38.p6	Tr-NAM-4	Trained-NAM-4	trained

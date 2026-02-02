@@ -1,0 +1,61 @@
+# tab-separated file of the samples
+samples: samples.tsv
+
+# pipeline file locations
+result_dir: /scratch/siebrenf/yavor/results  # where to store results
+genome_dir: /scratch/genomes  # where to look for or download the genomes
+fastq_dir: /scratch/mozturk/nam_fastq  # where to look for or download the fastqs
+
+
+# contact info for multiqc report and trackhub
+# email: yavor@mhlangalab.org
+
+# produce a UCSC trackhub?
+create_trackhub: true
+
+# how to handle replicates
+biological_replicates: fisher  # change to "keep" to not combine them
+technical_replicates: merge    # change to "keep" to not combine them
+
+# which trimmer to use
+trimmer: fastp
+
+# which aligner to use
+aligner: bwa-mem2
+
+# filtering after alignment
+remove_blacklist: true
+remove_mito: true
+tn5_shift: true
+min_mapping_quality: 30
+only_primary_align: true
+max_template_length: 150
+remove_dups: true
+
+# should the final output be stored as cram files (instead of bam) to save storage?
+store_as_cram: false
+
+# macs2 ignores the mates in a paired sequencing sample. with this option enabled
+# seq2science removes the mate information after alignment, so all reads are used
+macs2_keep_mates: true
+
+# peak callers (supported peak callers are macs2, and genrich)
+peak_caller:
+  macs2:
+      --shift -100 --extsize 200 --nomodel --buffer-size 10000
+#  genrich:
+#      -j -y -D -d 200 -q 0.05
+
+# how much peak summits will be extended by (on each side) for the final count table
+# (e.g. 100 means a 200 bp wide peak)
+slop: 100
+
+# whether or not to run gimme maelstrom to infer differential motifs
+run_gimme_maelstrom: true
+infer_motif2factors: false
+motif2factors_reference: []
+
+# differential accessibility analysis
+# for explanation, see: https://vanheeringen-lab.github.io/seq2science/content/DESeq2.html
+contrasts:
+  - conditions_trained_naive

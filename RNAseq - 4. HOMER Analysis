@@ -1,1 +1,10 @@
 
+### 1. HOMER Foreground and HOMER Background Preparation ###
+
+#  The foreground genes were derived by pooling the leading edge (core) genes from each of the significantly (FDR < 0,05) upregulated MSigDB HALLMARK terms - 543 genes in total. 
+#  The background genes were derived by filtering out genes with cumulative TPM across all NAM conditions and replicates < 30 TPM from the gene count table - 14900 genes in total.
+
+### 2. HOMER Code - Bash ###
+
+ findMotifs.pl pool_cut_edge_upregulated.txt mouse ./more_than_30_TPM_background_upreg -bg more_than_30_TPM_background.tsv
+

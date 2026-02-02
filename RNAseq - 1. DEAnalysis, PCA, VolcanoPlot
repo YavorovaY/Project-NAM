@@ -134,3 +134,53 @@ write.csv(NAM_Trained_vs_Naive_clean, file = "NAM_Trained_vs_Naive All DEGs.csv"
 
 
 
+
+
+### 5. Volcano Plot ###
+
+
+top_up <- dplyr::as_tibble(res_df) %>%
+  dplyr::filter(log2FoldChange > 1, padj_fix < 0.05) %>%
+  dplyr::arrange(padj_fix) %>%
+  dplyr::slice_head(n = 10) %>%
+  dplyr::select(gene, log2FoldChange, padj = padj_fix, baseMean)
+
+top_down <- dplyr::as_tibble(res_df) %>%
+  dplyr::filter(log2FoldChange < -1, padj_fix < 0.05) %>%
+  dplyr::arrange(padj_fix) %>%
+  dplyr::slice_head(n = 10) %>%
+  dplyr::select(gene, log2FoldChange, padj = padj_fix, baseMean)
+
+selected_genes <- unique(c(top_up$gene, top_down$gene))
+
+
+
+ NAM_Trained_vs_Naive_clean_volcano <- EnhancedVolcano(
+  as.data.frame(NAM_Trained_vs_Naive_clean),
+  lab              = rownames(NAM_Trained_vs_Naive_clean),
+  selectLab        = selected_genes,
+  x                = "log2FoldChange",
+  y                = "padj",
+  pCutoff          = 0.05,
+  FCcutoff         = 1,
+  drawConnectors   = TRUE,
+  widthConnectors  = 0.25,
+  maxoverlapsConnectors = 100,
+  xlim             = c(-25, 25),
+  ylim             = c(0, 40),
+  ylab             = expression(Log[10]~'p-Adj'),
+  xlab             = expression(Log[2]~'FC'),
+  title            = "NAMs - Trained vs Naive",
+  subtitle         = "Top Up/Down Regulated Genes"
+)
+
+
+NAM_Trained_vs_Naive_clean_volcano
+
+
+
+
+
+
+
+

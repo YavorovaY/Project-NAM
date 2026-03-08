@@ -1,0 +1,102 @@
+### The goal was to overlap the differential ATAC peaks in Trained NAMs, agains all public PPARg peaks in mice. For the purpose
+### I downloaded from Re-Map all .bed for mouse macrophage PPARg and then using bedtools I did the following:
+
+mkdir -p overlaps_csv summaries tmp_sorted
+
+nano run_all_overlaps.sh
+
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Input files
+ENH="DA_ATAC_peaks_enhancers.bed"
+PRO="DA_ATAC_peaks_promoters.bed"
+
+# Output folders
+OUTCSV="overlaps_csv"
+OUTSUM="summaries"
+TMPDIR="tmp_sorted"
+
+mkdir -p "$OUTCSV" "$OUTSUM" "$TMPDIR"
+
+# Keep only chr/start/end/gene from ATAC files, then sort
+cut -f1-4 "$ENH" | sort -k1,1 -k2,2n > "$TMPDIR/DA_ATAC_peaks_enhancers.sorted.bed"
+cut -f1-4 "$PRO" | sort -k1,1 -k2,2n > "$TMPDIR/DA_ATAC_peaks_promoters.sorted.bed"
+
+run_one() {
+    local atac_file="$1"
+    local atac_label="$2"
+    local chip_gz="$3"
+
+    local chip_base
+    chip_base=$(basename "$chip_gz" .bed.gz)
+
+    local chip_sorted="$TMPDIR/${chip_base}.sorted.bed"
+    local overlap_raw="$TMPDIR/${chip_base}_${atac_label}_overlap_raw.bed"
+    local overlap_csv="$OUTCSV/${chip_base}_${atac_label}_overlap.csv"
+    local summary_txt="$OUTSUM/${chip_base}_${atac_label}_summary.txt"
+
+    # Extract only chr/start/end from ChIP and sort
+    zcat "$chip_gz" | cut -f1-3 | sort -k1,1 -k2,2n > "$chip_sorted"
+
+    # Count totals
+    local atac_total
+    atac_total=$(wc -l < "$atac_file")
+
+    local chip_total
+    chip_total=$(wc -l < "$chip_sorted")
+
+    # Full overlap pairs: ATAC cols 1-4 + ChIP cols 1-3
+    bedtools intersect \
+        -a "$atac_file" \
+        -b "$chip_sorted" \
+        -wa -wb > "$overlap_raw"
+
+    # Unique ATAC peaks overlapping ChIP
+    local atac_overlap
+    atac_overlap=$(bedtools intersect \
+        -a "$atac_file" \
+        -b "$chip_sorted" \
+        -u | wc -l)
+
+    # Unique ChIP peaks overlapping ATAC
+    local chip_overlap
+    chip_overlap=$(bedtools intersect \
+        -a "$chip_sorted" \
+        -b "$atac_file" \
+        -u | wc -l)
+
+    # Convert overlap output to CSV
+    awk 'BEGIN{
+            OFS=",";
+            print "ATAC_chr,ATAC_start,ATAC_end,ATAC_gene,ChIP_chr,ChIP_start,ChIP_end"
+         }
+         {
+            print $1,$2,$3,$4,$5,$6,$7
+         }' "$overlap_raw" > "$overlap_csv"
+
+    # Write summary
+    {
+        echo "ChIP file: $chip_gz"
+        echo "ATAC file: $atac_file"
+        echo "ATAC type: $atac_label"
+        echo "Total ATAC peaks: $atac_total"
+        echo "Total ChIP peaks: $chip_total"
+        echo "Unique ATAC peaks overlapping ChIP: $atac_overlap"
+        echo "Unique ChIP peaks overlapping ATAC: $chip_overlap"
+    } > "$summary_txt"
+
+    echo "Finished: ${chip_base} vs ${atac_label}"
+}
+
+for chip in GSE*.bed.gz; do
+    run_one "$TMPDIR/DA_ATAC_peaks_enhancers.sorted.bed" "enhancers" "$chip"
+    run_one "$TMPDIR/DA_ATAC_peaks_promoters.sorted.bed" "promoters" "$chip"
+done
+
+echo "All overlaps completed."
+
+
+
+chmod +x run_all_overlaps.sh
+./run_all_overlaps.sh

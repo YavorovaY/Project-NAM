@@ -1,0 +1,83 @@
+#### For TOBIAS multiple input files were needed:
+##### 1) All .bam and .bam.bai which in this case were the four TR NAM replicates and 1/2/4 SS NAM replicates
+##### 2) Merged .bam files => create a single aggregated TR NAM .bam and .bam.bai and the same for the SS NAM.
+##### 3) A consensus peak set which contains peaks from at least two replicates - it is a .bed file
+##### 4) A mm10 genome - it was important to use the one without "chr" but that only says the number.
+##### 5) A .txt file which contains all motif sequences - I derived it from JASPER
+
+
+########## MERGE .BAM FILES ###########
+
+## Merge Naive
+
+samtools merge -@ 8 Naive_merged.bam \
+  GRCm38.p6-SS-NAM-1.samtools-coordinate.bam \
+  GRCm38.p6-SS-NAM-2.samtools-coordinate.bam \
+  GRCm38.p6-SS-NAM-4.samtools-coordinate.bam
+
+## Merge Trained
+
+samtools merge -@ 8 Trained_merged.bam \
+  GRCm38.p6-Tr-NAM-1.samtools-coordinate.bam \
+  GRCm38.p6-Tr-NAM-2.samtools-coordinate.bam \
+  GRCm38.p6-Tr-NAM-3.samtools-coordinate.bam \
+  GRCm38.p6-Tr-NAM-4.samtools-coordinate.bam
+
+## Index the files
+
+samtools index -@ 8 Naive_merged.bam
+samtools index -@ 8 Trained_merged.bam
+
+
+########## ATACorrect ########### - the goal is to correct for the Tn5 cutting bias, as the enzyme prefers some locations more than others which does not represent true biology.
+## This part only gives you the correct chromatin open regions
+
+### Naive ATACorrect
+
+nice -n 10 TOBIAS ATACorrect \
+  --bam /scratch/mozturk/Yavor/TOBIAS_NAM/NAM_BAM/Naive_merged.bam \
+  --genome /scratch/mozturk/Yavor/TOBIAS_NAM/genome/mm10.nochr.fa \
+  --peaks /scratch/mozturk/Yavor/TOBIAS_NAM/peaks/consensus_peaks_2plus.nochr.bed \
+  --outdir /scratch/mozturk/Yavor/TOBIAS_NAM/output/ATACorrect_Naive \
+  --cores 20
+
+
+### Trained ATACorrect
+
+nice -n 10 TOBIAS ATACorrect \
+  --bam /scratch/mozturk/Yavor/TOBIAS_NAM/NAM_BAM/Trained_merged.bam \
+  --genome /scratch/mozturk/Yavor/TOBIAS_NAM/genome/mm10.nochr.fa \
+  --peaks /scratch/mozturk/Yavor/TOBIAS_NAM/peaks/consensus_peaks_2plus.nochr.bed \
+  --outdir /scratch/mozturk/Yavor/TOBIAS_NAM/output/ATACorrect_Trained \
+  --cores 20
+
+########## ScoreBigwig ########### - looks at each peak and computes the footprint score or with other words - binding likelihood
+
+### Naive ScoreBigwig
+
+nice -n 10 TOBIAS ScoreBigwig \
+  --signal /scratch/mozturk/Yavor/TOBIAS_NAM/output/ATACorrect_Naive/Naive_merged_corrected.bw \
+  --regions /scratch/mozturk/Yavor/TOBIAS_NAM/peaks/consensus_peaks_2plus.nochr.bed \
+  --output /scratch/mozturk/Yavor/TOBIAS_NAM/output/Footprints/Naive_footprints.bw \
+  --cores 20
+
+### Trained ScoreBigwig
+
+nice -n 10 TOBIAS ScoreBigwig \
+  --signal /scratch/mozturk/Yavor/TOBIAS_NAM/output/ATACorrect_Trained/Trained_merged_corrected.bw \
+  --regions /scratch/mozturk/Yavor/TOBIAS_NAM/peaks/consensus_peaks_2plus.nochr.bed \
+  --output /scratch/mozturk/Yavor/TOBIAS_NAM/output/Footprints/Trained_footprints.bw \
+  --cores 20
+
+########## BINDetect ########### - compares the TF binding between the two conditions
+
+nice -n 10 TOBIAS BINDetect \
+  --signals \
+    /scratch/mozturk/Yavor/TOBIAS_NAM/output/Footprints/Trained_footprints.bw \
+    /scratch/mozturk/Yavor/TOBIAS_NAM/output/Footprints/Naive_footprints.bw \
+  --genome /scratch/mozturk/Yavor/TOBIAS_NAM/genome/mm10.nochr.fa \
+  --peaks /scratch/mozturk/Yavor/TOBIAS_NAM/peaks/consensus_peaks_2plus.nochr.bed \
+  --motifs /scratch/mozturk/Yavor/TOBIAS_NAM/motifs/JASPAR2022_CORE_vertebrates_non-redundant_pfms_jaspar.txt \
+  --outdir /scratch/mozturk/Yavor/TOBIAS_NAM/output/BINDetect_Trained_vs_Naive \
+  --cond_names Trained Naive \
+  --cores 20

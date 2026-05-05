@@ -1,0 +1,14 @@
+bigWigToBedGraph GSM2701074_1_01CT_005WIHS_1-NT_EZH2_mm10_i94_dmnorm_signal.bw EZH2_NT.bedGraph
+bigWigToBedGraph GSM2701075_2_01CU_005WIHS_2-TLR_EZH2_mm10_i95_dmnorm_signal.bw EZH2_TLR.bedGraph
+
+awk '$4 > 2' EZH2_NT.bedGraph  > EZH2_NT_signal_gt2.bedGraph
+awk '$4 > 2' EZH2_TLR.bedGraph > EZH2_TLR_signal_gt2.bedGraph
+
+cut -f1-3 EZH2_NT_signal_gt2.bedGraph  > EZH2_NT_signal_gt2.bed
+cut -f1-3 EZH2_TLR_signal_gt2.bedGraph > EZH2_TLR_signal_gt2.bed
+
+bedtools sort -i EZH2_NT_signal_gt2.bed | bedtools merge > EZH2_NT_signal_gt2_merged.bed
+bedtools sort -i EZH2_TLR_signal_gt2.bed | bedtools merge > EZH2_TLR_signal_gt2_merged.bed
+
+wc -l EZH2_NT_signal_gt2_merged.bed
+wc -l EZH2_TLR_signal_gt2_merged.bed
